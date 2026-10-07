@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recomienda Cusco · AR</title>
+<style>
+:root{--g:#1D3A14;--l:#E8F0E0;--m:#3B6D11}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1f2a24;color:#fff;font-family:system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#2f3d34}
+#layer{position:fixed;inset:0;overflow:hidden}
+#center{position:fixed;left:50%;top:0;bottom:0;width:0;border-left:1px dashed #ffffff55;pointer-events:none}
+.pl{position:absolute;transform:translateX(-50%);max-width:70vw;border:0;border-radius:14px;padding:7px 11px;background:#E8F0E0ee;color:#173404;font:inherit;font-size:13px;line-height:1.3;text-align:left;cursor:pointer;box-shadow:0 2px 8px #0006;transition:outline .1s}
+.pl b{display:block;font-weight:600}
+.pl span{font-size:12px;color:#3B6D11}
+.pl.r{background:#FAEEDAee;color:#412402}.pl.r span{color:#854F0B}
+.pl.s{background:#E6F1FBee;color:#042C53}.pl.s span{color:#185FA5}
+.pl.foc{outline:3px solid #EF9F27}
+#hud{position:fixed;top:0;left:0;right:0;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;display:flex;gap:8px;align-items:center;justify-content:space-between;background:linear-gradient(#000a,#0000);font-size:12px;pointer-events:none}
+#hud *{pointer-events:auto}
+select{background:#000a;color:#fff;border:1px solid #fff5;border-radius:10px;padding:6px 8px;font-size:12px}
+#info{opacity:.9}
+#card{position:fixed;left:0;right:0;bottom:0;background:var(--l);color:#173404;border-radius:18px 18px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px #0005;min-height:92px}
+#card h2{margin:0 0 2px;font-size:18px}
+#card .sub{font-size:13px;color:var(--m);margin-bottom:6px}
+#card p{margin:6px 0 10px;font-size:13px;line-height:1.45}
+#card a{display:inline-block;background:var(--g);color:#EAF3DE;text-decoration:none;border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px}
+#card .x{float:right;background:#fff;color:#173404;border:0;border-radius:50%;width:30px;height:30px;font-size:16px}
+.open{color:#27500A;font-weight:600}.closed{color:#A32D2D;font-weight:600}
+#start{position:fixed;inset:0;background:#1f2a24ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+#start h1{margin:0;font-size:24px}#start p{margin:0;max-width:320px;font-size:14px;line-height:1.5;color:#cfd8cf}
+#start button{background:#EF9F27;color:#412402;border:0;border-radius:14px;padding:14px 26px;font-size:16px;font-weight:700}
+#msg{position:fixed;left:12px;right:12px;top:calc(52px + env(safe-area-inset-top));background:#000b;border-radius:10px;padding:8px 10px;font-size:12px;display:none}
+</style></head><body>
+<video id="video" playsinline muted autoplay></video>
+<div id="layer"></div><div id="center"></div>
+<div id="hud"><span id="info"></span><select id="radio" aria-label="radio"></select></div>
+<div id="msg"></div>
+<div id="card"></div>
+<div id="start"><h1 id="t1"></h1><p id="t2"></p><button id="go"></button></div>
+<script>
+/* ---------- datos ---------- */
+const EMBEDDED = [["lugares", "Sacsayhuamán", "Fortaleza inca", "Inca fortress", "Fortaleza ceremonial inca con enormes bloques de piedra. Ideal para historia y fotografía.", "Inca ceremonial fortress with huge stone blocks. Great for history and photography.", "-13.5086", "-71.9817", "sacsayhuaman.jpg", "7", "17", "4.8"], ["lugares", "Qorikancha", "Templo inca", "Inca temple", "Templo inca del sol. Sus muros de piedra sostienen el convento de Santo Domingo.", "Inca temple of the sun. Its stone walls support the Santo Domingo convent.", "-13.5195", "-71.9753", "qorikancha.jpg", "9", "17", "4.8"], ["restaurantes", "Ukllay Traditional Peruvian Cuisine Rooftop", "Cocina peruana · Terraza", "Peruvian cuisine · Rooftop", "Situado en el Portal de Panes de la Plaza de Armas. Ofrece una vista hermosa de la plaza central.", "Located in the Portal de Panes on the Plaza de Armas. Offers a beautiful view of the main square.", "-13.5169", "-71.9786", "ukllay.jpg", "12", "22", "4.5"], ["restaurantes", "La Taberna del Pisco", "Pisco y vinos", "Pisco and wine", "Ubicado en Calle Siete Borreguitos. Ofrece catas gratuitas de pisco y vinos al entrar.", "Located on Calle Siete Borreguitos. Offers free pisco and wine tastings at the entrance.", "-13.5172", "-71.9776", "taberna.jpg", "11", "23", "4.5"], ["alojamientos", "Antigua Casona San Blas", "Gama alta / Boutique", "Upscale / Boutique", "Ubicado en el pintoresco barrio artístico de San Blas, ofrece un ambiente acogedor en una casona colonial restaurada con patio central, chimeneas y servicio personalizado. Ideal para quienes buscan confort y tranquilidad cerca del centro.", "Located in the picturesque artistic San Blas neighborhood, it offers a cozy atmosphere in a restored colonial house with a central courtyard, fireplaces and personalized service. Ideal for those seeking comfort and quiet near the center.", "-13.5148", "-71.9739", "casona.jpg", "0", "24", "4.6"], ["alojamientos", "Viajero Cusco Hostel", "Económico / Mochilero", "Budget / Backpacker", "Ubicado en pleno centro histórico, combina habitaciones privadas y compartidas en un entorno colonial con amplios patios. Es una opción popular por su ambiente social y tarifas accesibles.", "Located in the heart of the historic center, it combines private and shared rooms in a colonial setting with spacious courtyards. A popular option for its social atmosphere and affordable rates.", "-13.5170", "-71.9783", "viajero.jpg", "0", "24", "4.3"]];
+/* ---------- funciones puras ---------- */
+const DEG = Math.PI / 180;
+function parseCSV(text){
+  const rows=[]; let row=[], f='', q=false;
+  for (let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c=='"'){ if(text[i+1]=='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c=='"') q=true;
+    else if(c==','){ row.push(f); f=''; }
+    else if(c=='\n'||c=='\r'){ if(c=='\r'&&text[i+1]=='\n') i++; row.push(f); f=''; if(row.length>1||row[0]!=='') rows.push(row); row=[]; }
+    else f+=c;
+  }
+  if(f!==''||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function toPlace(r){ return {cat:r[0],name:r[1],tagEs:r[2],tagEn:r[3],descEs:r[4],descEn:r[5],lat:+r[6],lon:+r[7],img:r[8],open:+r[9],close:+r[10],rating:r[11]||''}; }
+function distM(lat1,lon1,lat2,lon2){ const dx=(lon2-lon1)*Math.cos(lat1*DEG)*111320, dy=(lat2-lat1)*110540; return Math.hypot(dx,dy); }
+function bearing(lat1,lon1,lat2,lon2){ const dx=(lon2-lon1)*Math.cos(lat1*DEG), dy=lat2-lat1; return (Math.atan2(dx,dy)/DEG+360)%360; }
+function angDiff(a,b){ return ((a-b+540)%360+360)%360-180; }
+function lerpAngle(cur,target,k){ return (cur+angDiff(target,cur)*k+360)%360; }
+function compassHeading(alpha,beta,gamma){
+  const x=(beta||0)*DEG, y=(gamma||0)*DEG, z=(alpha||0)*DEG;
+  const cY=Math.cos(y), cZ=Math.cos(z), sX=Math.sin(x), sY=Math.sin(y), sZ=Math.sin(z);
+  const Vx=-cZ*sY-sZ*sX*cY, Vy=-sZ*sY+cZ*sX*cY;
+  let h=Math.atan(Vx/Vy); if(Vy<0) h+=Math.PI; else if(Vx<0) h+=2*Math.PI;
+  return (h/DEG)%360;
+}
+function isOpen(p,hour){ return hour>=p.open && hour<p.close; }
+/*__PURE_END__*/
+/* ---------- parámetros y textos ---------- */
+const Q = new URLSearchParams(location.search);
+const LANG = (Q.get('lang')||'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+const T = {
+ es:{title:'Descubre cerca',intro:'Apunta la cámara y verás los lugares cercanos sobre la imagen. Mantén el celular casi vertical y gira despacio.',go:'Iniciar cámara',aim:'Apunta hacia un lugar',open:'Abierto',closed:'Cerrado',h24:'Abierto las 24 horas',hours:'Horario',route:'Cómo llegar',noGps:'Buscando tu ubicación…',noCam:'Cámara no disponible: se muestra solo el radar.',demo:'modo demo',m:'m',km:'km',all:'Todos',nothing:'No hay lugares en este radio. Amplía el radio.'},
+ en:{title:'Discover nearby',intro:'Point the camera and nearby places will appear over the image. Hold the phone almost upright and turn slowly.',go:'Start camera',aim:'Point at a place',open:'Open',closed:'Closed',h24:'Open 24 hours',hours:'Hours',route:'Directions',noGps:'Finding your location…',noCam:'Camera not available: showing radar only.',demo:'demo mode',m:'m',km:'km',all:'All',nothing:'No places in this radius. Increase the radius.'}
+}[LANG];
+const FOV = 55;             // campo de visión horizontal (grados)
+let places = EMBEDDED.map(toPlace);
+let pos = null, heading = 0, target = null, selected = null, focused = null, started = false;
+const demoLat=parseFloat(Q.get('lat')), demoLon=parseFloat(Q.get('lon'));
+const DEMO = !isNaN(demoLat) && !isNaN(demoLon);
+if (DEMO) pos = {lat:demoLat, lon:demoLon, acc:0};
+let radius = parseInt(Q.get('radio')||'3000',10);
+
+const $ = id => document.getElementById(id);
+$('t1').textContent = T.title; $('t2').textContent = T.intro; $('go').textContent = T.go;
+const sel = $('radio');
+[[500,'500 m'],[1000,'1 km'],[3000,'3 km'],[10000,'10 km'],[100000,T.all]].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; if(v===radius) o.selected=true; sel.appendChild(o); });
+if (![500,1000,3000,10000,100000].includes(radius)) { const o=document.createElement('option'); o.value=radius; o.textContent=radius+' m'; o.selected=true; sel.appendChild(o); }
+sel.onchange = () => { radius = +sel.value; };
+
+/* lugares.csv junto a la página (si existe); si no, los datos incluidos */
+fetch('lugares.csv',{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject()).then(t=>{ const rows=parseCSV(t).filter(r=>r.length>=11); if(rows.length){ places=rows.map(toPlace); build(); } }).catch(()=>{});
+
+/* ---------- etiquetas ---------- */
+const layer = $('layer'); let els = [];
+function catClass(c){ return c==='restaurantes'?'r':(c==='alojamientos'?'s':''); }
+function build(){
+  layer.innerHTML=''; els=[];
+  places.forEach((p,i)=>{
+    const b=document.createElement('button'); b.className='pl '+catClass(p.cat); b.style.display='none';
+    b.innerHTML='<b></b><span></span>'; b.onclick=()=>{ selected=p; renderCard(); };
+    layer.appendChild(b); els.push(b);
+  });
+}
+build();
+function fmtDist(d){ return d>=1000 ? (d/1000).toFixed(1)+' '+T.km : Math.round(d)+' '+T.m; }
+function hourNow(){ return new Date().getHours(); }
+function statusHtml(p){ const o=isOpen(p,hourNow()); return '<span class="'+(o?'open':'closed')+'">'+(o?T.open:T.closed)+'</span>'; }
+function renderCard(){
+  const p = selected || focused, c=$('card');
+  if(!p){ c.innerHTML = '<div class="sub">'+(pos?T.aim:T.noGps)+'</div>'; return; }
+  const d = pos ? fmtDist(distM(pos.lat,pos.lon,p.lat,p.lon)) : '';
+  const hrs = (p.open===0&&p.close===24) ? T.h24 : T.hours+': '+p.open+':00 – '+p.close+':00';
+  const url = 'https://www.google.com/maps/dir/?api=1&destination='+p.lat+','+p.lon;
+  c.innerHTML = (selected?'<button class="x" id="cx" aria-label="close">×</button>':'')+
+    '<h2>'+p.name+'</h2><div class="sub">'+(LANG==='en'?p.tagEn:p.tagEs)+(p.rating?' · ★ '+p.rating:'')+(d?' · '+d:'')+' · '+statusHtml(p)+'</div>'+
+    '<p>'+(LANG==='en'?p.descEn:p.descEs)+'<br><small>'+hrs+'</small></p><a href="'+url+'" target="_blank" rel="noopener">'+T.route+'</a>';
+  const x=$('cx'); if(x) x.onclick=()=>{ selected=null; renderCard(); };
+}
+renderCard();
+
+/* ---------- bucle de dibujo ---------- */
+let lastKey='';
+function frame(){
+  if(target!==null){ const d=angDiff(target,heading); if(Math.abs(d)>1) heading=lerpAngle(heading,target,0.12); }
+  let best=null, bestAbs=999, shown=0;
+  if(pos){
+    const items = places.map((p,i)=>({p,i,d:distM(pos.lat,pos.lon,p.lat,p.lon)})).filter(o=>o.d<=radius).sort((a,b)=>a.d-b.d);
+    const vis = new Set();
+    items.forEach((o,k)=>{
+      const diff = angDiff(bearing(pos.lat,pos.lon,o.p.lat,o.p.lon), heading);
+      const el = els[o.i]; if(!el) return;
+      if(Math.abs(diff) <= FOV/2+8){
+        const x = 50 + diff/FOV*100, y = 14 + (k%5)*11;
+        el.style.display='block'; el.style.left=x+'%'; el.style.top=y+'%';
+        el.firstChild.textContent=o.p.name; el.lastChild.textContent=fmtDist(o.d)+(o.p.rating?' · ★ '+o.p.rating:'')+' · '+(isOpen(o.p,hourNow())?T.open:T.closed);
+        vis.add(o.i); shown++;
+        if(Math.abs(diff)<bestAbs && Math.abs(diff)<=8){ bestAbs=Math.abs(diff); best=o.p; }
+      }
+    });
+    els.forEach((el,i)=>{ if(!vis.has(i)) el.style.display='none'; el.classList.toggle('foc', best===places[i]); });
+    if(items.length===0) $('info').textContent=T.nothing;
+  }
+  focused = best;
+  const key=(best?best.name:'')+'|'+(selected?selected.name:'')+'|'+(pos?1:0);
+  if(key!==lastKey){ lastKey=key; renderCard(); }
+  if(pos && places.length) $('info').textContent = Math.round(heading)+'° · '+(DEMO?T.demo:(pos.acc?'GPS ±'+Math.round(pos.acc)+' m':'GPS'));
+  else if(started) $('info').textContent = T.noGps;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- sensores ---------- */
+function onOrient(e){
+  let h=null;
+  if(e.webkitCompassHeading!=null) h=e.webkitCompassHeading;
+  else if(e.alpha!=null) h=compassHeading(e.alpha,e.beta,e.gamma);
+  if(h===null||isNaN(h)) return;
+  if(target===null) heading=h;
+  target=h;
+}
+function msg(t){ const m=$('msg'); m.textContent=t; m.style.display='block'; setTimeout(()=>m.style.display='none',5000); }
+async function startAll(){
+  $('start').style.display='none'; started=true;
+  try{ if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){ await DeviceOrientationEvent.requestPermission(); } }catch(e){}
+  if('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute',onOrient,true);
+  else window.addEventListener('deviceorientation',onOrient,true);
+  if(!DEMO && navigator.geolocation){
+    navigator.geolocation.watchPosition(p=>{ pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}; },
+      ()=>msg(T.noGps),{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+  }
+  try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}); const v=$('video'); v.srcObject=s; v.play(); }
+  catch(e){ msg(T.noCam); }
+}
+$('go').onclick=startAll;
+</script></body></html>
